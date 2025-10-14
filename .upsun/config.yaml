@@ -1,0 +1,149 @@
+# Complete list of all available properties: https://docs.upsun.com/create-apps/app-reference.html
+applications:
+  d11:
+    # Application source code directory
+    source:
+      root: "/"
+
+    # The runtime the application uses.
+    # Complete list of available runtimes: https://docs.upsun.com/create-apps/app-reference.html#types
+    type: "php:8.4"
+
+    # Choose which container profile (ratio CPU+RAM) your app will use. Default value comes from the image itself.
+    # More information: https://docs.upsun.com/manage-resources/adjust-resources.html#adjust-a-container-profile
+    # container_profile:
+
+    dependencies:
+      nodejs:
+        n: "*"
+        npx: "*"
+        yarn: "^1.22.0"
+      php:
+        composer/composer: "^2"
+
+
+    variables:
+      env:
+        N_PREFIX: "/app/.global"
+
+
+    web:
+      locations:
+        "/":
+          root: "web"
+          expires: 5m
+          passthru: "/index.php"
+          allow: false
+          rules:
+            '\.(avif|webp|jpe?g|png|gif|svgz?|css|js|map|ico|bmp|eot|woff2?|otf|ttf)$':
+              allow: true
+            '^/robots\.txt$':
+              allow: true
+            '^/sitemap\.xml$':
+              allow: true
+            '^/sites/sites\.php$':
+              scripts: false
+            '^/sites/[^/]+/settings.*?\.php$':
+              scripts: false
+        "/sites/default/files":
+          root: "web/sites/default/files"
+          allow: true
+          expires: 5m
+          passthru: "/index.php"
+          scripts: false
+          rules:
+            '^/sites/default/files/(css|js)':
+              expires: 2w
+
+    mounts:
+      "/web/sites/default/files": "shared:files/files"
+      "/tmp": "shared:files/tmp"
+      "/private": "shared:files/private"
+      "/.drush": "shared:files/drush"
+      "/drush-backups": "shared:files/drush-backups"
+
+    relationships:
+      mariadb: "mariadb:mysql"
+      redis: 'cache:redis'
+      opensearch: 'search:opensearch'
+      memcached: 'memory:memcached'
+
+    hooks:
+      build: |
+        set -e
+        # fast.
+      deploy: |
+        set -e
+        php ./drush/upsun_generate_drush_yml.php
+        cd web
+        bash $PLATFORM_APP_DIR/drush/upsun_deploy_drupal.sh
+
+    crons:
+      # Run Drupal's cron tasks every 19 minutes.
+      drupal:
+        spec: '*/19 * * * *'
+        commands:
+          start: 'cd web ; drush core-cron'
+    runtime:
+      # Enable the redis extension so Drupal can communicate with the Redis cache.
+      extensions:
+        - redis
+        - sodium
+        - apcu
+        - blackfire
+
+
+
+    # Outbound firewall rules for the application. More information: https://docs.upsun.com/create-apps/app-reference.html#firewall
+    # firewall:
+
+    # Specifies a default set of build tasks to run. Flavors are language-specific.
+    # More information: https://docs.upsun.com/create-apps/app-reference.html#build
+    build:
+      flavor: composer
+
+      # The post_deploy hook is run after the app container has been started and after it has started accepting requests.
+      # More information: https://docs.upsun.com/create-apps/hooks/hooks-comparison.html#deploy-hook
+      # post_deploy: |
+
+    # Scheduled tasks for the app.
+    # More information: https://docs.upsun.com/create-apps/app-reference.html#crons
+    # crons:
+
+    # Customizations to your PHP or Lisp runtime. More information: https://docs.upsun.com/create-apps/app-reference.html#runtime
+    # runtime:
+
+    # More information: https://docs.upsun.com/create-apps/app-reference.html#additional-hosts
+    # additional_hosts:
+
+# The services of the project.
+#
+# Each service listed will be deployed
+# to power your Upsun project.
+# More information: https://docs.upsun.com/add-services.html
+# Full list of available services: https://docs.upsun.com/add-services.html#available-services
+services:
+  mariadb:
+    type: mariadb:11.8
+  cache:
+    type: redis:8.0
+  search:
+    type: opensearch:3
+  memory:
+    type: memcached:1.6
+
+
+
+# The routes of the project.
+#
+# Each route describes how an incoming URL is going
+# to be processed by Upsun.
+# More information: https://docs.upsun.com/define-routes.html
+routes:
+  "https://{all}/":
+    type: upstream
+    upstream: "d11:http"
+    cache:
+      # Disable the HTTP cache on this route. It's handled by the CDN instead.
+      enabled: false
+
