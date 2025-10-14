@@ -64,7 +64,7 @@ applications:
 
     relationships:
       mariadb: "mariadb:mysql"
-      redis: 'cache:redis'
+#      redis: 'cache:redis'
       opensearch: 'search:opensearch'
       memcached: 'memory:memcached'
 
@@ -125,8 +125,8 @@ applications:
 services:
   mariadb:
     type: mariadb:11.8
-  cache:
-    type: redis:8.0
+#  cache:
+#    type: redis:8.0
   search:
     type: opensearch:3
   memory:
