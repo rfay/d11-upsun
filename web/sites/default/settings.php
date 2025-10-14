@@ -2,7 +2,7 @@
 
 // phpcs:ignoreFile
 
-// DDEV-created Drupal 10 settings.php from upstream default.settings.php
+// DDEV-created Drupal 11 settings.php from upstream default.settings.php
 
 /**
  * @file
@@ -146,7 +146,7 @@ $databases = [];
  * in deadlocks, the other two options are 'READ UNCOMMITTED' and 'SERIALIZABLE'.
  * They are available but not supported; use them at your own risk. For more
  * info:
- * https://dev.mysql.com/doc/refman/5.7/en/innodb-transaction-isolation-levels.html
+ * https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html
  *
  * On your settings.php, change the isolation level:
  * @code
@@ -259,6 +259,7 @@ $databases = [];
  * its location.
  */
 # $settings['config_sync_directory'] = '/directory/outside/webroot';
+$settings['config_sync_directory'] = dirname(DRUPAL_ROOT) . '/config/sync';
 
 /**
  * Settings:
@@ -727,15 +728,6 @@ $settings['container_yamls'][] = $app_root . '/' . $site_path . '/services.yml';
 # $settings['container_base_class'] = '\Drupal\Core\DependencyInjection\Container';
 
 /**
- * Override the default yaml parser class.
- *
- * Provide a fully qualified class name here if you would like to provide an
- * alternate implementation YAML parser. The class must implement the
- * \Drupal\Component\Serialization\SerializationInterface interface.
- */
-# $settings['yaml_parser_class'] = NULL;
-
-/**
  * Trusted host configuration.
  *
  * Drupal core can use the Symfony trusted host mechanism to prevent HTTP Host
@@ -810,16 +802,6 @@ $settings['entity_update_batch_size'] = 50;
 $settings['entity_update_backup'] = TRUE;
 
 /**
- * State caching.
- *
- * State caching uses the cache collector pattern to cache all requested keys
- * from the state API in a single cache entry, which can greatly reduce the
- * amount of database queries. However, some sites may use state with a
- * lot of dynamic keys which could result in a very large cache.
- */
-$settings['state_cache'] = TRUE;
-
-/**
  * Node migration type.
  *
  * This is used to force the migration system to use the classic node migrations
@@ -880,6 +862,10 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && file_exists(__DIR__ . '/settings.ddev
   include __DIR__ . '/settings.ddev.php';
 }
 
+if (getenv('PLATFORM_PROJECT_ENTROPY') != "") {
+  include __DIR__ . '/settings.upsun.php';
+}
+
 /**
  * Load local development override configuration, if available.
  *
@@ -897,3 +883,8 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && file_exists(__DIR__ . '/settings.ddev
 # if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
 #   include $app_root . '/' . $site_path . '/settings.local.php';
 # }
+
+// Include settings required for Redis cache.
+if ((file_exists(__DIR__ . '/settings.ddev.redis.php') && getenv('IS_DDEV_PROJECT') == 'true')) {
+  include __DIR__ . '/settings.ddev.redis.php';
+}
